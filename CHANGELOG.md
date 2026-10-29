@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0+1] - 2026-10-29
 
-### UI, Icon, Telemetry & Reliability Refinements (15 User-Verified Fixes)
+### UI, Icon, Telemetry & Reliability Refinements (16 User-Verified Fixes)
+- **Direct Asset Reference in README**: Updated the header logo image in README.md to point directly to ssets/app_icon.png.
 - **Adaptive Monochrome & Status Bar Notification Icon (`adaptive_icon.png`)**:
   - Dedicated `assets/adaptive_icon.png` (featuring transparent separation lines for the cube facets, donut chart, and metric bars) exclusively as the Android homescreen monochrome adaptive icon (`ic_launcher_monochrome.png` at 51% canvas height) and status bar notification icon (`ic_notification.png` at 90% glyph scale on pure `#FFFFFF` alpha mask across all densities), replacing opaque white blocks with sharp, detailed cutouts.
 - **Normal App Icon Size Reduction (-2 Units)**:

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="NAS Dash Logo" width="120" height="120" style="border-radius: 24px"/>
+<img src="assets/app_icon.png" alt="NAS Dash Logo" width="120" height="120" style="border-radius: 24px"/>
 
 <h1>NAS Dash</h1>
 
