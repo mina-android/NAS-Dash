@@ -41,8 +41,8 @@ It provides real-time hardware telemetry, customizable dashboard widgets, deep r
 1. **Create an API Key on TrueNAS**: Log into your TrueNAS SCALE Web UI, navigate to the top-right user menu, click **API Keys**, and generate a new key.
 2. **Add Your Server Profile**:
    - Open NAS Dash and enter a Server Name.
-   - Enter your **Primary LAN Host** (e.g. `https://192.168.1.11`).
-   - (Optional) Enter your **Fallback VPN Host** (e.g. `https://100.102.141.91`).
+   - Enter your **Primary LAN Host** 
+   - (Optional) Enter your **Fallback VPN Host** 
    - Paste your API key and tap **Connect & Save**.
 3. **Customize Your Dashboard**: Tap the **Customize** button on the Dashboard tab to toggle widgets, reorder cards, or adjust compact sizing.
 4. **Grant Notification Access**: Allow notification permissions when prompted to receive real-time push alerts for server warnings and critical events.
