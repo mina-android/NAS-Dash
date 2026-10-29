@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Mode Launcher Background (Forced White as requested) -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>
