@@ -4,7 +4,7 @@
 
 # NAS Dash
 
-[![Platform](https://img.shields.io/badge/Platform-Android-grey.svg?style=flat)](https://android.com) [![Flutter](https://img.shields.io/badge/Flutter-3.47.6-02569B.svg?style=flat&logo=flutter&logoColor=white)](https://flutter.dev) [![Release](https://img.shields.io/badge/Release-v1.1.0-blue.svg?style=flat)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-grey.svg?style=flat)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-black.svg?style=flat)](LICENSE) [![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg?style=flat)](https://github.com/mina-android/NAS-Dash/actions)
+[![Platform](https://img.shields.io/badge/Platform-Android-grey.svg?style=flat)](https://android.com) [![Flutter](https://img.shields.io/badge/Flutter-3.47.6-02569B.svg?style=flat&logo=flutter&logoColor=white)](https://flutter.dev) [![Release](https://img.shields.io/badge/Release-v1.1.0-blue.svg?style=flat)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-grey.svg?style=flat)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-black.svg?style=flat)](LICENSE)
 
 <p align="center">
   A native Android dashboard and management companion for TrueNAS SCALE servers, providing real-time telemetry, ZFS storage inspection, app lifecycle management, and secure remote connectivity.
