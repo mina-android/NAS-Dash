@@ -1,97 +1,167 @@
 <div align="center">
 
-<img src="assets/app_icon.png" alt="NAS Dash Logo" width="120" height="120" style="border-radius: 24px"/>
+<img src="assets/app_icon.png" alt="NAS Dash Logo" width="112" height="112" />
 
-<h1>NAS Dash</h1>
+# NAS Dash
 
-<h3>A modern, native Android control panel and dashboard for TrueNAS SCALE servers</h3>
+[![Platform](https://img.shields.io/badge/Platform-Android-grey.svg?style=flat)](https://android.com) [![Flutter](https://img.shields.io/badge/Flutter-3.47.6-02569B.svg?style=flat&logo=flutter&logoColor=white)](https://flutter.dev) [![Release](https://img.shields.io/badge/Release-v1.1.0-blue.svg?style=flat)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-grey.svg?style=flat)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-black.svg?style=flat)](LICENSE) [![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg?style=flat)](https://github.com/mina-android/NAS-Dash/actions)
 
-[![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://android.com) [![Version](https://img.shields.io/badge/Version-1.0.0+1-0095D5)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-0095D5?logo=linux&logoColor=white)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-blue)](LICENSE)
-
-NAS Dash is a high-performance Android companion designed specifically for TrueNAS SCALE servers.  
-It provides real-time hardware telemetry, customizable dashboard widgets, deep read-only ZFS storage inspection, installed app controls with smart VPN portal rewriting, and real-time Android push notifications.
-
-[**Download**](#-download) · [**Features**](#-what-you-can-do) · [**Getting Started**](#-getting-started) · [**FAQ**](#-questions-you-might-have) · [**For Developers**](#-for-developers)
+<p align="center">
+  A native Android dashboard and management companion for TrueNAS SCALE servers, providing real-time telemetry, ZFS storage inspection, app lifecycle management, and secure remote connectivity.
+</p>
 
 </div>
 
 ---
 
-## ✨ What you can do
+## Navigation
 
-- **📊 Fully Customizable & Collapsible Dashboard**: Choose, arrange, and collapse 12 modular widgets to fit your workflow. Tap any card's header row to collapse it into a sleek single-line summary (or tap anywhere when collapsed to expand) with states persisted in `SharedPreferences`. Monitor live CPU utilization with per-core breakdowns, compact and aligned RAM & ZFS ARC memory metrics, network transfer speeds, active storage pool capacity, system temperatures, and live background scrub and replication jobs.
-- **⚡ Butter-Smooth Scrolling & Frosted Top Bar Blur**: Hardware-accelerated Material 3 surface containers combined with frosted glass top (`FrostedAppBar`) and bottom navigation chrome (`BackdropFilter` with `sigma: 18`) ensure silky 120fps scrolling with zero GPU frame drops or stutter across all 4 screens.
-- **🗄️ ZFS Storage & Dataset Explorer with Zero-Risk Guardrails**: Inspect storage pools, VDEV topologies, physical disk health, and operating temperatures. Browse dataset hierarchies, inspect compression ratios and mount points, and monitor OS boot pool wear and health. Destructive pool/dataset deletions and modifications are strictly prohibited in the UI to safeguard your data.
-- **🚀 Installed Apps Lifecycle, Version Diffs & SVG/PNG Icons**: Manage your containerized applications in a dedicated tab. View real-time status indicators (Running, Stopped), SVG and raster app icons with CDN fallbacks (`AppIconWidget`), side-by-side version comparison (`Current Version ➔ Update Version`), start, stop, or upgrade apps, and open Web UI portals with 1 tap.
-- **📁 SMB Share Management & Username-Resolved Filesystem ACL Inspector**: Turn SMB file shares on or off directly in Settings with immediate loading and optimistic feedback, and inspect deep Filesystem Access Control Lists (ACLs) with resolved usernames, group names, and itemized ALLOW/DENY permission entries.
-- **📜 Host Power Log with Timestamps & Created Users**: Inspect host power, reboot, and boot history with formatted operation dates (`MMM d, yyyy • h:mm a`), and view created non-system user accounts with UID, full name, and sudo privilege badges.
-- **⚙️ Advanced Controls & Telemetry**: Includes custom storage pool warning threshold notifications, live active jobs and background task monitor with abort capabilities, boot pool SSD wear health, and container resource breakdown, styled with clean monochrome Settings icons.
-- **⚡ Dual Transport LAN & NetBird VPN Failover**: Seamlessly transition between home and remote networks. Configure both a primary LAN host (e.g. `192.168.1.11`) and a fallback VPN host (e.g. NetBird `100.102.141.91`). The app automatically tests connectivity, fails over seamlessly, and dynamically rewrites app portal URLs so web dashboards work from anywhere.
-- **🔔 Real-Time & Background System Alert Notifications**: Stay informed of TrueNAS system warnings, pool degradations, and disk alerts. Enhanced status bar notification icon with full-width 90% glyph scale renders sharp and prominent in the Android notification shade.
-- **🛡️ Biometric Security Guard**: Guard sensitive system power operations (Reboot and Shutdown) behind your phone's fingerprint, face unlock, or device PIN using Android's BiometricPrompt.
-- **🎨 Modern Glass UI with Space Grotesk Typography**: Styled with Google Fonts `Space Grotesk`, Material You dynamic colors for Android 12+ wallpaper extraction (with in-app System / Dark / Light theme selector), and frosted glass navigation chrome.
-- **📱 Fixed Adaptive Icon (62% Scale & Solid White BG)**: Features a vibrant 3D color launcher icon enlarged to 62% scale inside a solid `#FFFFFF` white background across all system modes to reduce empty border space while remaining safely within Android circular masks, accompanied by an Android 13+ monochrome themed icon (`ic_launcher_monochrome.png`) and dedicated status bar silhouette.
-- **🛡️ Fail-Safe Startup & Resilient Secure Storage**: Immediate UI startup with asynchronous service bootstrapping, deferred notification permissions, Android KeyStore `resetOnError: true`, and global error boundaries to prevent startup crashes.
-- **⚙️ Unified Server Management**: Perfectly aligned active server profile cards with status indicators, route failover toggles, and multi-server switcher.
+[Features](#features) &bull; [Downloads](#downloads) &bull; [Self Building & Local Setup](#self-building--local-setup) &bull; [Frequently Asked Questions](#frequently-asked-questions) &bull; [Contribution](#contribution) &bull; [About the Developer](#about-the-developer) &bull; [Donate](#donate) &bull; [License](#license)
 
 ---
 
-## 🧭 Getting started
+## Features
 
-1. **Create an API Key on TrueNAS**: Log into your TrueNAS SCALE Web UI, navigate to the top-right user menu, click **API Keys**, and generate a new key.
-2. **Add Your Server Profile**:
-   - Open NAS Dash and enter a Server Name.
-   - Enter your **Primary LAN Host** 
-   - (Optional) Enter your **Fallback VPN Host** 
-   - Paste your API key and tap **Connect & Save**.
-3. **Customize Your Dashboard**: Tap the **Customize** button on the Dashboard tab to toggle widgets, reorder cards, or adjust compact sizing.
-4. **Grant Notification Access**: Allow notification permissions when prompted to receive real-time push alerts for server warnings and critical events.
+### Core Capabilities
 
----
+- **Real-Time Telemetry & Hardware Monitoring**: Stream live CPU load with per-core distributions, ZFS ARC and physical memory metrics, network throughput, active alerts with server-side dismissal/restoration, background jobs, and OS boot pool wear over encrypted WebSockets and REST APIs.
+- **Landscape Lock Mode (On-The-Go Server Dashboard)**: One-tap topbar button locks the interface into landscape kiosk mode with screen wake-lock (`FLAG_KEEP_SCREEN_ON`), full-screen `immersiveSticky` system bar hiding, a top bar live telemetry cluster (**LAN/VPN Connection**, **Phone Battery %**, and **Time**), a full-height frosted `LandscapeSideNavBar` with live alert/update badges, and responsive 2-column masonry/grid layouts across all 4 tabs.
+- **Customizable Dashboard Widgets**: Modular widget layout featuring 12 toggleable and collapsible cards with per-widget persistence saved to local application storage.
+- **ZFS Storage & Dataset Inspector**: Read-only explorer for ZFS pools, VDEV mirror and RAIDZ configurations, dataset compression ratios, mount directories, and physical disk S.M.A.R.T. health indicators.
+- **Containerized App Management**: Monitor TrueNAS SCALE catalog applications with search and status filter chips (`All`, `Running`, `Stopped`, `Updates`), inspect active container statuses, review version update differentials (enriched via `upgrade_summary`), trigger container starts/stops, run single or batch **Upgrade All** updates with live TrueNAS job progress, and launch Web UI portals.
+- **Dual-Endpoint Network Routing**: Automatic network handoff switching between local LAN IP addresses and remote VPN overlay hosts (NetBird, Tailscale, WireGuard) with automatic app portal host rewriting.
+- **Biometric Security Guards & Host Controls**: Biometric fingerprint or system PIN verification guards critical server actions (with TrueNAS 25.04+ audit reason support for reboots and shutdowns), alongside SMB share toggles, username-resolved ACL inspection, power logs, and user account inspection.
 
-## 📥 Download
+### Architecture & Data Handling
 
-Release APKs are built with ABI splitting for minimal download size:
-
-| Architecture | Device Type | APK Download |
-|---|---|---|
-| **arm64-v8a** | Modern Android phones & tablets (64-bit) | [Download arm64-v8a](https://github.com/mina-android/NAS-Dash/releases/latest) |
-| **armeabi-v7a** | Older Android devices (32-bit) | [Download armeabi-v7a](https://github.com/mina-android/NAS-Dash/releases/latest) |
-| **x86_64** | Android Emulators, Intel/AMD tablets | [Download x86_64](https://github.com/mina-android/NAS-Dash/releases/latest) |
+- **Guardrail-Enforced Security**: Destructive storage operations (such as pool destruction or dataset deletion) are intentionally excluded from the mobile interface to eliminate risk of accidental data loss.
+- **Encrypted TLS Transport**: Strictly mandates HTTPS and WSS protocols when communicating with the TrueNAS WebSocket and REST endpoints, preventing transmission of plain-text API keys across unencrypted channels.
+- **Localized Credential Storage**: Server authentication tokens and host parameters are stored securely inside Android encrypted preferences on the client device.
 
 ---
 
-## 🔒 Security & Privacy Guarantees
+## Downloads
 
-- **Enforced HTTPS/WSS Transport**: TrueNAS SCALE permanently deletes API keys submitted over insecure HTTP. NAS Dash strictly enforces encrypted TLS transport.
-- **Biometric Action Guards**: Power operations (Reboot, Shutdown) require fingerprint or device PIN authentication.
-- **Local Credential Storage**: Host addresses and API keys are stored in encrypted hardware-backed storage (`flutter_secure_storage`).
-- **Read-Only Data Safety**: ZFS pools and datasets cannot be deleted or resized from within the application.
+Official release packages are published on the [GitHub Releases](https://github.com/mina-android/NAS-Dash/releases) page.
+
+| Platform | Architecture | Package Type | Download Link | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Android** | arm64-v8a | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | 64-bit Android devices (recommended) |
+| **Android** | armeabi-v7a | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Older 32-bit hardware |
+| **Android** | x86_64 | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Android x86 emulators |
+| **Android** | Universal | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Complete universal APK |
 
 ---
 
-## 👨‍💻 For Developers
+## Self Building & Local Setup
 
-```powershell
+### 1. Prerequisites
+
+Ensure the following tools are configured:
+
+- **Flutter SDK**: `3.47.6` (pinned)
+- **Dart SDK**: `3.13.5` (bundled with Flutter `3.47.6`)
+- **Android SDK**: API level `36` (`minSdk 26`, `targetSdk 36`)
+- **Java Development Kit**: JDK `21` LTS
+- **Git**: `2.30+`
+
+### 2. Repository Setup
+
+```bash
 # Clone the repository
 git clone https://github.com/mina-android/NAS-Dash.git
-cd "NAS Dash"
 
-# Install Flutter dependencies
+# Navigate into project directory
+cd NAS-Dash
+
+# Check development environment
+flutter doctor
+```
+
+### 3. Dependency Installation
+
+```bash
+# Install dependencies
 flutter pub get
+```
 
-# Run static analysis
-flutter analyze
+### 4. Build Compilation
 
-# Run unit tests
-flutter test
+```bash
+# Compile release binaries
+flutter build apk --split-per-abi --release
+```
 
-# Build split-per-ABI release APKs
-flutter build apk --split-per-abi
+Output packages will be generated inside `build/app/outputs/flutter-apk/`.
+
+### 5. Running Locally
+
+```bash
+flutter run --release
+```
+
+---
+
+## Frequently Asked Questions
+
+#### How do I generate an API key on TrueNAS SCALE?
+Log into your TrueNAS SCALE Web UI using a browser. In the upper-right corner, click on your user profile icon, navigate to **API Keys**, select **Add**, name the key (e.g. `NAS-Dash`), and copy the generated token into the NAS Dash connection form.
+
+#### Does NAS Dash work over self-hosted VPNs like Tailscale or NetBird?
+Yes. When configuring your server connection, specify your primary local address under **Primary LAN Host** and your VPN IP address under **Fallback VPN Host**. NAS Dash tests local reachability first and transparently falls back to the VPN route when away from your home network.
+
+#### Can NAS Dash execute destructive disk formatting or pool destruction?
+No. To safeguard critical network storage and prevent accidental data loss, all pool, disk, and dataset management actions in NAS Dash are strictly read-only.
+
+---
+
+## Contribution
+
+Contributions addressing bug reports, TrueNAS SCALE API compatibility, or UI refinements are welcome.
+
+### Contribution Process
+
+1. Check existing GitHub Issues to verify whether an issue or feature proposal is already being tracked.
+2. For API changes related to newer TrueNAS releases (e.g., Electric Eel or Dragonfish), open an issue first.
+3. Validate code formatting and tests:
+   ```bash
+   flutter analyze
+   flutter test
+   ```
+4. Submit a Pull Request targeting `main`.
+
+---
+
+## About the Developer
+
+This project is authored and maintained by **mina-android**, building specialized Android utilities, homelab monitors, and infrastructure tooling.
+
+- **Developer Portfolio**: [portfolio.minaashraf285.workers.dev](https://portfolio.minaashraf285.workers.dev/)
+- **GitHub Profile**: [github.com/mina-android](https://github.com/mina-android)
+- **Issue Tracker**: [github.com/mina-android/NAS-Dash/issues](https://github.com/mina-android/NAS-Dash/issues)
+
+---
+
+## Donate
+
+If NAS Dash helps you monitor your storage infrastructure and manage your TrueNAS servers efficiently, your support is greatly appreciated:
+
+- **PayPal**: [paypal.me/minaashraf285](https://paypal.me/minaashraf285)
+- **GitHub Sponsors**: [github.com/sponsors/mina-android](https://github.com/sponsors/mina-android)
+
+---
+
+## License
+
+Distributed under the **GNU General Public License v3.0**. See the [`LICENSE`](LICENSE) file in the root directory for legal conditions.
+
+```text
+Copyright (c) 2026 mina-android
+Licensed under the GNU General Public License v3.0.
 ```
 
 ---
 
 <div align="center">
-  <sub>Developed by <a href="https://github.com/mina-android">Mina Android</a> · TrueNAS® is a registered trademark of iXsystems, Inc.</sub>
+  <sub>NAS Dash &bull; Maintained by mina-android &bull; Telemetry and management for TrueNAS SCALE.</sub>
 </div>

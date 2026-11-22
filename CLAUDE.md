@@ -1,7 +1,7 @@
 # NAS Dash — Project Reference for AI Assistants
 
 > **Purpose:** This file gives a complete, code-verified picture of the NAS Dash Flutter app so an AI assistant can pick up work immediately without re-reading every source file.
-> **Last synced with code:** v1.0.0+1 — Frosted Glass Top Bar Blur Across All 4 Screens, Space Grotesk UI, Cutout Adaptive & Notification Icons from `adaptive_icon.png`, 51% Scaled Colored App Icon, Smooth 120fps Collapsible Dashboard Animation, Fractional Uptime Formatting Fix, Streamlined Settings Screen (Pruned NIC Sheet), Compact `Row`-Based RAM & ZFS ARC Card, SVG & Raster App Icon Loading (`flutter_svg` + CDN Fallback), Username-Resolved SMB Share ACLs, Formatted Operation Dates in Host Power Log, Instant SMB Share Loading, and Neutral Monochrome Settings Icons.
+> **Last synced with code:** v1.0.0+1 — Landscape Lock Mode (On-The-Go Server Dashboard with Top Bar Toggle, WakeLock, Immersive Sticky, Live Battery/Route/Clock Telemetry Cluster, Left Frosted NavigationRail, and 2-Column Masonry/Grid Layouts), TrueNAS 25.04+ Power Audit Reason Support, Frosted Glass Top Bar Blur Across All 4 Screens, Space Grotesk UI, Cutout Adaptive & Notification Icons from `adaptive_icon.png`, 51% Scaled Colored App Icon, Smooth 120fps Collapsible Dashboard Animation, Fractional Uptime Formatting Fix, Streamlined Settings Screen (Pruned NIC Sheet), Compact `Row`-Based RAM & ZFS ARC Card, SVG & Raster App Icon Loading (`flutter_svg` + CDN Fallback), Username-Resolved SMB Share ACLs, Formatted Operation Dates in Host Power Log, Instant SMB Share Loading, and Neutral Monochrome Settings Icons.
 
 ---
 
@@ -38,13 +38,15 @@ c:\Projects\NAS Dash\
 │   │           └── drawable-*       # ic_notification (crisp 90% full-width adaptive_icon.png cutouts in pure white alpha mask)
 ├── lib/
 │   ├── main.dart                    # App entry point, immediate runApp(), error boundaries, async background setup
-│   ├── app_shell.dart               # Frosted glass 4-tab shell: Dashboard, Storage, Apps, Settings (post-frame permission request)
+│   ├── app_shell.dart               # Frosted glass 4-tab shell (Portrait: bottom NavigationBar | Landscape: left NavigationRail)
 │   ├── core/
 │   │   ├── constants/
 │   │   │   └── api_endpoints.dart   # TrueNAS SCALE REST endpoints
 │   │   ├── network/
 │   │   │   ├── truenas_http_client.dart # Dio client with badCertificateCallback for self-signed TLS & failover
 │   │   │   └── truenas_ws_client.dart   # WebSocket client for JSON-RPC core.subscribe & real-time telemetry
+│   │   ├── providers/
+│   │   │   └── landscape_mode_provider.dart # Landscape orientation lock, WakeLock, immersiveSticky & phone battery/clock telemetry
 │   │   ├── services/
 │   │   │   ├── notification_service.dart     # flutter_local_notifications wrapper with @drawable/ic_notification & action dismiss
 │   │   │   └── background_alert_worker.dart  # 15-minute periodic Workmanager callback for alerts
@@ -53,9 +55,10 @@ c:\Projects\NAS Dash\
 │   │   │   ├── app_theme.dart       # Material 3 ThemeData with GoogleFonts.spaceGrotesk and dynamic colors
 │   │   │   └── theme_provider.dart  # ThemeSettings notifier (ThemeMode: system/dark/light, dynamic wallpaper colors)
 │   │   └── widgets/
-│   │       ├── frosted_app_bar.dart # Translucent frosted glass top AppBar across all 4 screens (120fps lag-free)
+│   │       ├── frosted_app_bar.dart # Translucent frosted glass top AppBar with Landscape Lock toggle & live status cluster
 │   │       ├── glass_card.dart      # Hardware-accelerated Material 3 surface container with rounded border (lag-free scrolling)
-│   │       └── refresh_action_button.dart # Animated rotating refresh button with haptic feedback
+│   │       ├── refresh_action_button.dart # Animated rotating refresh button with haptic feedback
+│   │       └── responsive_two_column_grid.dart # MasonryTwoColumnGrid & UniformTwoColumnGrid for 2-column landscape layouts
 │   └── features/
 │       ├── auth/
 │       │   ├── models/server_profile.dart           # Server host (LAN + NetBird VPN), API key, route state
@@ -86,15 +89,16 @@ c:\Projects\NAS Dash\
 │       │   ├── presentation/storage_screen.dart     # Read-only Pools & VDEVs, Disks, Datasets tree with FrostedAppBar
 │       │   └── providers/storage_provider.dart      # Storage fetcher with RAID and usable space calculation
 │       ├── apps/
-│       │   ├── models/app_model.dart                # App model with upgradeVersion and app icon
-│       │   ├── presentation/apps_screen.dart        # 3rd tab: Network icons, version diffs, Start/Stop/Upgrade
-│       │   └── providers/apps_provider.dart         # TrueNAS app.query notifier
+│       │   ├── models/app_model.dart                # App model with upgradeVersion, available_versions_for_upgrade & copyWith
+│       │   ├── presentation/apps_screen.dart        # 3rd tab: Network icons, version diffs, Start/Stop/Upgrade, Upgrade All, live job progress
+│       │   └── providers/apps_provider.dart         # TrueNAS app.query, upgrade_summary enrichment, job polling & multi-version lifecycle actions
 │       └── settings/
 │           ├── presentation/
 │           │   ├── settings_screen.dart             # Merged 4th tab: Aligned servers, SMB toggles & ACL, Logs, Users, Advanced sheets
 │           │   └── widgets/                         # Dedicated modal bottom sheets for ACL, Logs, Users, Jobs, Power, Boot, App Resources
 │           └── providers/system_provider.dart       # System state & notifier with ACL, audit, power, jobs, and sensor APIs
 ├── test/
+│   ├── app_upgrade_test.dart                        # Unit tests for TrueNAS app upgrade, start/stop, job polling & upgrade_summary
 │   ├── enhancements_test.dart                       # Unit tests for app upgrades, icons, and collapsible config
 │   ├── models_test.dart                             # Unit tests for SystemInfoData, ZfsPool, TrueNasApp, ServerProfile
 │   ├── new_features_test.dart                       # Unit tests for RAID calculation and NetworkInterfaceTelemetry

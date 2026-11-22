@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-11-22
+
+### TrueNAS SCALE App Upgrade & Lifecycle Fix (2026-11-22)
+- **Fixed App Upgrade & Start/Stop Endpoints (`apps_provider.dart`, `api_endpoints.dart`)**:
+  - Updated `AppsNotifier.upgradeApp()` from the broken `/api/v2.0/app/id/$appName/upgrade` route to `POST /api/v2.0/app/upgrade` with `{"app_name": appName, "options": {}}`, with automatic fallback to `{"app_name": appName}` on HTTP 400/422 and legacy `/id/$appName/upgrade` on HTTP 404/405.
+  - Hardened `startApp()` and `stopApp()` to use `POST /api/v2.0/app/start` and `POST /api/v2.0/app/stop` with multi-version payload/route fallbacks.
+- **Asynchronous TrueNAS Job Polling & Error Reporting (`AppActionResult`, `activeAppJobsProvider`)**:
+  - Added `AppActionResult`, `BatchUpgradeResult`, and `AppJobProgress` so app actions track returned TrueNAS background job IDs via `/api/v2.0/core/get_jobs`, report live percentage progress, and surface exact HTTP/middleware failure reasons in SnackBars.
+- **Upgrade Target Version Enrichment (`app_model.dart`, `apps_provider.dart`)**:
+  - Automatically queries `POST /api/v2.0/app/upgrade_summary` for apps with `upgrade_available: true` when target version strings are missing from `GET /api/v2.0/app`, and added `available_versions_for_upgrade` parsing plus `TrueNasApp.copyWith`.
+- **Per-App Progress UI & "Upgrade All" Batch Action (`apps_screen.dart`)**:
+  - Disabled duplicate actions and displayed live job progress spinners/percentages on active app cards, plus added a one-tap **"Upgrade All (N)"** `ActionChip` in the filter header when updates are available.
+- **Unit Tests (`test/app_upgrade_test.dart`)**:
+  - Added unit tests covering `upgradeApp` payload/fallbacks, job polling (`SUCCESS` and `FAILED` middleware error extraction), `startApp`/`stopApp`, `upgrade_summary` enrichment, and `upgradeAllApps`.
+
+### Release & Repository Maintenance (2026-11-22)
+- **Version Bump (`1.1.0+2`)**: Bumped `pubspec.yaml` and Settings About badge from `1.0.0+1` to `1.1.0+2`.
+- **README & `.gitignore` Updates**:
+  - Pinned **Flutter `3.47.6`** and **Dart `3.13.5`** in `README.md` prerequisites and added a pinned Flutter badge.
+  - Switched main `README.md` badges from `style=flat-square` to rounded-corner `style=flat` and updated release download links to `v1.1.0`.
+  - Added `AGENTS.md`, `AI_INSTRUCTIONS.md`, and `CLAUDE.md` to `.gitignore` and marked `.gitignore` as hidden.
+
+### Landscape Navigation Rail & UI/UX Polish (2026-11-22)
+- **Tonal Top Bar Action Pills, Landscape Right Padding & Cohesive Rounded Icons (`FrostedAppBar`, `RefreshActionButton`, `AppShell`)**:
+  - Added `frostedAppBarActionStyle` in `lib/core/widgets/frosted_app_bar.dart` for unified 36×36 rounded-square (`12dp`) tonal pill action buttons across `RefreshActionButton`, Dashboard Customize, and the Landscape Lock toggle, with `6dp` spacing between buttons and `12dp` right-edge padding in landscape (`8dp` in portrait).
+  - Updated navigation icons across both portrait `NavigationBar` and landscape `LandscapeSideNavBar` to cohesive Material Rounded icons (`space_dashboard_rounded`, `storage_rounded`, `grid_view_rounded`, `settings_rounded`) and `dashboard_customize_rounded` on the Dashboard top bar.
+- **Full-Height Stretched Landscape Side Navbar (`LandscapeSideNavBar`)**:
+  - Replaced the centered `NavigationRail` in `lib/app_shell.dart` with a custom frosted `LandscapeSideNavBar` (`116dp` inner width inside `SafeArea`, preventing display-cutout cropping) whose 4 destinations (**Dashboard**, **Storage**, **Apps**, **Settings**) stretch equally via `Expanded` to fill 100% of the vertical rail height, featuring a left-edge vertical active accent bar, full-height rounded pill indicator, 26dp icons, and haptic selection feedback.
+- **Live Navigation Status Badges & Smooth Tab Cross-Fade**:
+  - Added live `Badge.count` indicators on both `LandscapeSideNavBar` and portrait `NavigationBar` for active (non-dismissed) system alerts on **Dashboard** and available app updates on **Apps**.
+  - Added `_FadeIndexedStack` for a smooth 180ms `Curves.easeOutCubic` cross-fade when switching between tabs while preserving scroll and provider state.
+- **Apps Search & Status Filter Chips (`AppsScreen`)**:
+  - Upgraded `lib/features/apps/presentation/apps_screen.dart` with a Material 3 rounded search bar (matching app name or version) and live-counted `FilterChip` bar (`All`, `Running`, `Stopped`, `Updates`) plus a one-tap `"Clear filters"` empty state.
+- **Widget Tests**:
+  - Added `test/landscape_nav_and_apps_test.dart` verifying full-height equal-sized rail tiles, badge rendering, and `AppsScreen` search/chip filtering.
+
+### Landscape Lock Mode — On-The-Go Server Dashboard & Kiosk Mode (2026-11-22)
+- **Landscape Orientation Lock, WakeLock & Immersive Sticky Full-Screen (`landscape_mode_provider.dart` & `MainActivity.kt`)**:
+  - Added `LandscapeModeNotifier` (`landscapeModeProvider`) backed by `SharedPreferences` (`nas_dash_landscape_lock`) so the locked landscape state persists across app restarts.
+  - Locks orientation to `DeviceOrientation.landscapeLeft` and `DeviceOrientation.landscapeRight` and hides Android OS status/navigation bars via `SystemUiMode.immersiveSticky`.
+  - Added native `com.ma.nasdash/device` `MethodChannel` in `MainActivity.kt` to toggle `WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON` (preventing display sleep when mounted next to the server) and query real-time Android `BatteryManager` capacity and charging status.
+- **Top Bar Landscape Lock Toggle & Live Telemetry Cluster (`FrostedAppBar`)**:
+  - Added a one-tap Landscape Lock toggle button (`Icons.screen_lock_landscape_rounded` / `Icons.screen_rotation_rounded`) with haptic feedback across all 4 tabs' `FrostedAppBar`.
+  - When in landscape mode, `FrostedAppBar` displays a compact live telemetry cluster showing the active **Connection Route Pill** (`LAN` / `VPN` with tap-to-switch), **Phone Battery % + Charging Indicator Pill**, and **Desk Clock Time (`HH:mm`) Pill**.
+- **Adaptive Left Frosted `NavigationRail` (`AppShell`)**:
+  - Automatically replaces the bottom `NavigationBar` with a left-mounted frosted glass `NavigationRail` (`BackdropFilter` with `sigma: 20`) when in landscape mode to maximize vertical screen real estate.
+- **Responsive 2-Column Masonry & Grid Layouts Across All 4 Screens (`responsive_two_column_grid.dart`)**:
+  - Added `MasonryTwoColumnGrid` and `UniformTwoColumnGrid` for side-by-side card rendering without vertical whitespace gaps.
+  - **Dashboard (`DashboardScreen`)**: Renders visible `CollapsibleDashboardCard` widgets in a balanced 2-column masonry layout in landscape.
+  - **Storage (`StorageScreen`)**: Renders ZFS Pools & VDEVs and Physical Disks in 2-column grids in landscape.
+  - **Apps (`AppsScreen`)**: Renders installed TrueNAS applications in a 2-column grid in landscape.
+  - **Settings (`SettingsScreen`)**: Arranges the 8 settings section cards into a 2-column masonry layout in landscape and adds a synchronized **Landscape Dashboard Lock (Kiosk Mode)** switch inside the Appearance & Theme section.
+
+### Host Power Management Fix (2026-11-16)
+- **Fixed TrueNAS SCALE 25.04+ / 25.10+ Host Reboot & Shutdown**:
+  - Updated `SystemNotifier.reboot()` and `SystemNotifier.shutdown()` in `lib/features/system/providers/system_provider.dart` to send the mandatory `reason` JSON payload (`{'reason': ...}`) required by TrueNAS SCALE 25.04+ audit compliance, with automatic fallback to `{}` for legacy TrueNAS SCALE 24.10 nodes.
+  - Added `PowerCommandResult` to return structured success status and extracted HTTP/TrueNAS middleware error details instead of silently swallowing exceptions.
+  - Added an optional, pre-filled **Audit Reason** `TextField` to the power confirmation dialog in `SettingsScreen`, double-tap protection (`_isDispatchingPower`), and detailed failure messages in the SnackBar.
+  - Added unit tests in `test/power_commands_test.dart` covering default reason dispatch, custom reason trimming, empty-reason fallback, legacy 24.10 fallback, and HTTP error formatting.
+  - Added `kotlin.incremental=false` to `android/gradle.properties` to prevent cross-drive (`C:\` Pub Cache vs `T:\` workspace) Kotlin incremental cache failures during Android release builds.
+
+---
+
 ## [1.0.0+1] - 2026-10-29
 
 ### UI, Icon, Telemetry & Reliability Refinements (16 User-Verified Fixes)

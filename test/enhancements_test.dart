@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nasdash/core/providers/landscape_mode_provider.dart';
+import 'package:nasdash/core/widgets/responsive_two_column_grid.dart';
 import 'package:nasdash/features/apps/models/app_model.dart';
 import 'package:nasdash/features/dashboard/models/dashboard_widget_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('Enhancements & New Features Tests', () {
@@ -51,6 +54,44 @@ void main() {
 
       final toggled = deserialized.copyWith(isCollapsed: false);
       expect(toggled.isCollapsed, isFalse);
+    });
+
+    test('LandscapeModeNotifier persists and toggles landscape lock state', () async {
+      SharedPreferences.setMockInitialValues({});
+      final notifier = LandscapeModeNotifier(applyPlatformEffects: false);
+
+      expect(notifier.state, isFalse);
+
+      await notifier.toggleLandscapeLock();
+      expect(notifier.state, isTrue);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool(kLandscapeLockPrefsKey), isTrue);
+
+      await notifier.setLandscapeLock(false);
+      expect(notifier.state, isFalse);
+      expect(prefs.getBool(kLandscapeLockPrefsKey), isFalse);
+    });
+
+    test('DeviceTelemetryStatus parses battery level, charging state, and time', () {
+      final fixedTime = DateTime(2026, 11, 22, 14, 35);
+      final status = DeviceTelemetryStatus.fromMap(
+        {'level': 84, 'isCharging': true},
+        now: fixedTime,
+      );
+
+      expect(status.batteryLevel, equals(84));
+      expect(status.isCharging, isTrue);
+      expect(status.formattedTime, equals('14:35'));
+    });
+
+    test('MasonryTwoColumnGrid.splitColumns distributes items across two balanced columns', () {
+      final items = ['A', 'B', 'C', 'D', 'E'];
+      final cols = MasonryTwoColumnGrid.splitColumns(items);
+
+      expect(cols.length, equals(2));
+      expect(cols[0], equals(['A', 'C', 'E']));
+      expect(cols[1], equals(['B', 'D']));
     });
   });
 }

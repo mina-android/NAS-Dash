@@ -1,6 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/truenas_http_client.dart';
+
+class PowerCommandResult {
+  final bool ok;
+  final String? errorMessage;
+
+  const PowerCommandResult({required this.ok, this.errorMessage});
+}
 
 class SystemState {
   final List<Map<String, dynamic>> alerts;
@@ -96,22 +104,79 @@ class SystemNotifier extends StateNotifier<AsyncValue<SystemState>> {
     }
   }
 
-  Future<bool> reboot() async {
+  Future<PowerCommandResult> reboot({String reason = 'Rebooted via NAS Dash'}) {
+    return _dispatchPowerCommand(
+      ApiEndpoints.systemReboot,
+      reason: reason,
+      defaultReason: 'Rebooted via NAS Dash',
+    );
+  }
+
+  Future<PowerCommandResult> shutdown({String reason = 'Shut down via NAS Dash'}) {
+    return _dispatchPowerCommand(
+      ApiEndpoints.systemShutdown,
+      reason: reason,
+      defaultReason: 'Shut down via NAS Dash',
+    );
+  }
+
+  Future<PowerCommandResult> _dispatchPowerCommand(
+    String endpoint, {
+    required String reason,
+    required String defaultReason,
+  }) async {
+    final trimmed = reason.trim();
+    final effectiveReason = trimmed.isEmpty ? defaultReason : trimmed;
+
     try {
-      await _client.post(ApiEndpoints.systemReboot);
-      return true;
-    } catch (_) {
-      return false;
+      await _client.post(endpoint, data: {'reason': effectiveReason});
+      return const PowerCommandResult(ok: true);
+    } on DioException catch (e) {
+      // Legacy TrueNAS SCALE (24.10) rejects the `reason` key on system power endpoints.
+      if (_shouldFallbackToEmptyBody(e)) {
+        try {
+          await _client.post(endpoint, data: <String, dynamic>{});
+          return const PowerCommandResult(ok: true);
+        } on DioException catch (fallbackError) {
+          return PowerCommandResult(ok: false, errorMessage: _extractDioError(fallbackError));
+        } catch (fallbackError) {
+          return PowerCommandResult(ok: false, errorMessage: fallbackError.toString());
+        }
+      }
+      return PowerCommandResult(ok: false, errorMessage: _extractDioError(e));
+    } catch (e) {
+      return PowerCommandResult(ok: false, errorMessage: e.toString());
     }
   }
 
-  Future<bool> shutdown() async {
-    try {
-      await _client.post(ApiEndpoints.systemShutdown);
-      return true;
-    } catch (_) {
-      return false;
+  bool _shouldFallbackToEmptyBody(DioException error) {
+    final status = error.response?.statusCode;
+    if (status != 400 && status != 422) return false;
+    final body = error.response?.data?.toString().toLowerCase() ?? '';
+    return body.contains('reason') &&
+        (body.contains('unexpected') ||
+            body.contains('unknown') ||
+            body.contains('extra') ||
+            body.contains('not allowed') ||
+            body.contains('invalid'));
+  }
+
+  String _extractDioError(DioException error) {
+    final status = error.response?.statusCode;
+    final data = error.response?.data;
+    String? detail;
+    if (data is Map) {
+      detail = (data['message'] ?? data['reason'] ?? data['detail'] ?? data['error'])?.toString();
+    } else if (data is String && data.trim().isNotEmpty) {
+      detail = data.trim();
     }
+    if (detail != null && detail.isNotEmpty) {
+      return status != null ? 'HTTP $status: $detail' : detail;
+    }
+    if (status != null) {
+      return 'HTTP $status${error.message != null ? ' (${error.message})' : ''}';
+    }
+    return error.message ?? error.type.name;
   }
 
   Future<Map<String, dynamic>?> getFilesystemAcl(String path) async {

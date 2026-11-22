@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/providers/landscape_mode_provider.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/frosted_app_bar.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/refresh_action_button.dart';
+import '../../../core/widgets/responsive_two_column_grid.dart';
 import '../../apps/providers/apps_provider.dart';
 import '../../auth/models/server_profile.dart';
 import '../../auth/presentation/onboarding_screen.dart';
@@ -33,6 +35,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   double _poolWarningThreshold = 80.0;
+  bool _isDispatchingPower = false;
 
   @override
   void initState() {
@@ -69,7 +72,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showPowerDialog(BuildContext context, bool isReboot) {
+    if (_isDispatchingPower) return;
     final theme = Theme.of(context);
+    final defaultReason = isReboot ? 'Rebooted via NAS Dash' : 'Shut down via NAS Dash';
+    final reasonController = TextEditingController(text: defaultReason);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -83,30 +90,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text(isReboot ? 'Reboot Server?' : 'Shutdown Server?'),
           ],
         ),
-        content: Text(
-          isReboot
-              ? 'Are you sure you want to reboot the TrueNAS SCALE host? All active containers and shares will temporarily disconnect.'
-              : 'Are you sure you want to shut down the TrueNAS SCALE host? You will need physical or IPMI access to turn it back on.',
-          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isReboot
+                  ? 'Are you sure you want to reboot the TrueNAS SCALE host? All active containers and shares will temporarily disconnect.'
+                  : 'Are you sure you want to shut down the TrueNAS SCALE host? You will need physical or IPMI access to turn it back on.',
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: reasonController,
+              maxLength: 120,
+              decoration: InputDecoration(
+                labelText: 'Audit Reason (TrueNAS 25.04+)',
+                hintText: defaultReason,
+                counterText: '',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                isDense: true,
+              ),
+              style: const TextStyle(fontSize: 13),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical, foregroundColor: Colors.white),
             onPressed: () async {
+              final entered = reasonController.text.trim();
+              final reason = entered.isEmpty ? defaultReason : entered;
               Navigator.pop(ctx);
               final authenticated = await _authenticateBiometrics(context);
-              if (authenticated) {
-                final ok = isReboot
-                    ? await ref.read(systemProvider.notifier).reboot()
-                    : await ref.read(systemProvider.notifier).shutdown();
+              if (!authenticated || !mounted) return;
+
+              setState(() => _isDispatchingPower = true);
+              try {
+                final result = isReboot
+                    ? await ref.read(systemProvider.notifier).reboot(reason: reason)
+                    : await ref.read(systemProvider.notifier).shutdown(reason: reason);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(ok ? 'Power command dispatched' : 'Failed to dispatch command'),
-                      backgroundColor: ok ? AppColors.healthy : AppColors.critical,
+                      content: Text(
+                        result.ok
+                            ? 'Power command dispatched'
+                            : 'Failed to dispatch command${result.errorMessage != null ? ': ${result.errorMessage}' : ''}',
+                      ),
+                      backgroundColor: result.ok ? AppColors.healthy : AppColors.critical,
                     ),
                   );
+                }
+              } finally {
+                if (mounted) {
+                  setState(() => _isDispatchingPower = false);
                 }
               }
             },
@@ -114,7 +155,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
-    );
+    ).whenComplete(reasonController.dispose);
   }
 
   @override
@@ -127,37 +168,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final telemetryState = ref.watch(telemetryProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
     final themeNotifier = ref.read(themeSettingsProvider.notifier);
+    final isLandscapeLocked = ref.watch(landscapeModeProvider);
+    final isLandscape =
+        isLandscapeLocked || MediaQuery.of(context).orientation == Orientation.landscape;
     final appsState = ref.watch(appsProvider);
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final iconColor = colorScheme.onSurfaceVariant;
     final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight + 12;
+    final bottomPadding = isLandscape ? 24.0 : 96.0;
 
     final sysShares = sysState.valueOrNull?.smbShares ?? [];
     final telemetryShares = telemetryState.valueOrNull?.shares ?? [];
     final smbShares = sysShares.isNotEmpty ? sysShares : telemetryShares;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: FrostedAppBar(
-        title: const Text('System & Settings'),
-        actions: [
-          RefreshActionButton(
-            onRefresh: () async {
-              await Future.wait([
-                ref.read(authStateProvider.notifier).loadProfiles(),
-                sysNotifier.fetchSystem(),
-                ref.read(telemetryProvider.notifier).fetchTelemetry(),
-              ]);
-            },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, topPadding, 16, 96),
+    final sections = <Widget>[
+      // 1. Unified Server Management Card
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Unified Server Management Card
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -407,9 +437,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 2. SMB File Shares (Always visible on load without requiring manual refresh)
+      // 2. SMB File Shares (Always visible on load without requiring manual refresh)
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'SMB FILE SHARES',
             style: TextStyle(
@@ -527,9 +561,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 3. System Logs & User Accounts
+      // 3. System Logs & User Accounts
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'SYSTEM LOGS & USER ACCOUNTS',
             style: TextStyle(
@@ -579,9 +617,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 4. Advanced Controls & Telemetry
+      // 4. Advanced Controls & Telemetry
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'ADVANCED CONTROLS & TELEMETRY',
             style: TextStyle(
@@ -681,9 +723,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 5. Host Power Management
+      // 5. Host Power Management
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'HOST POWER CONTROLS',
             style: TextStyle(
@@ -715,7 +761,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _showPowerDialog(context, true),
+                        onPressed: _isDispatchingPower ? null : () => _showPowerDialog(context, true),
                         icon: Icon(Icons.restart_alt, color: colorScheme.onSurface),
                         label: const Text('Reboot Host'),
                       ),
@@ -724,7 +770,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical, foregroundColor: Colors.white),
-                        onPressed: () => _showPowerDialog(context, false),
+                        onPressed: _isDispatchingPower ? null : () => _showPowerDialog(context, false),
                         icon: const Icon(Icons.power_settings_new, color: Colors.white),
                         label: const Text('Shutdown'),
                       ),
@@ -734,9 +780,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 6. Appearance & Theme Card
+      // 6. Appearance & Theme Card
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'APPEARANCE & THEME',
             style: TextStyle(
@@ -794,12 +844,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   value: themeSettings.useDynamicColors,
                   onChanged: (val) => themeNotifier.setUseDynamicColors(val),
                 ),
+                const Divider(),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Landscape Dashboard Lock (Kiosk Mode)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Locks orientation to landscape, keeps screen awake, and displays 2-column server dashboard', style: TextStyle(fontSize: 11)),
+                  value: isLandscapeLocked,
+                  onChanged: (val) => ref.read(landscapeModeProvider.notifier).setLandscapeLock(val),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 7. System Notifications & Push Alerts Card
+      // 7. System Notifications & Push Alerts Card
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'NOTIFICATIONS & ALERTS',
             style: TextStyle(
@@ -906,9 +968,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
           ),
-          const SizedBox(height: 20),
+        ],
+      ),
 
-          // 8. About Section
+      // 8. About Section
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'ABOUT',
             style: TextStyle(
@@ -941,7 +1007,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('v1.0.0+1', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorScheme.onSurfaceVariant)),
+                    child: Text('v1.1.0+2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorScheme.onSurfaceVariant)),
                   ),
                 ),
                 const Divider(),
@@ -1013,6 +1079,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    ];
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: FrostedAppBar(
+        title: const Text('System & Settings'),
+        actions: [
+          RefreshActionButton(
+            onRefresh: () async {
+              await Future.wait([
+                ref.read(authStateProvider.notifier).loadProfiles(),
+                sysNotifier.fetchSystem(),
+                ref.read(telemetryProvider.notifier).fetchTelemetry(),
+              ]);
+            },
+          ),
+        ],
+      ),
+      body: isLandscape
+          ? SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, topPadding, 16, bottomPadding),
+              child: MasonryTwoColumnGrid(
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 20,
+                children: sections,
+              ),
+            )
+          : ListView.separated(
+              padding: EdgeInsets.fromLTRB(16, topPadding, 16, bottomPadding),
+              itemCount: sections.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 20),
+              itemBuilder: (_, index) => sections[index],
+            ),
     );
   }
 }

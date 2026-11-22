@@ -1,5 +1,10 @@
 package com.ma.nasdash
 
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.view.WindowManager
 import androidx.annotation.NonNull
 import com.ma.nasdash.smb.SmbManager
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -13,6 +18,7 @@ import java.security.Security
 
 class MainActivity : FlutterFragmentActivity() {
     private val SMB_CHANNEL = "com.ma.nasdash/smb"
+    private val DEVICE_CHANNEL = "com.ma.nasdash/device"
     private lateinit var smbManager: SmbManager
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -139,6 +145,48 @@ class MainActivity : FlutterFragmentActivity() {
                         } catch (e: Exception) {
                             result.error("SMB_ERROR", e.localizedMessage, e.stackTraceToString())
                         }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setKeepScreenOn" -> {
+                    val enable = call.argument<Boolean>("enable") ?: false
+                    runOnUiThread {
+                        if (enable) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                    result.success(true)
+                }
+                "getBatteryStatus" -> {
+                    try {
+                        val bm = getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+                        var level = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
+                        val intent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                        if (level <= 0 && intent != null) {
+                            val rawLevel = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                            if (rawLevel >= 0 && scale > 0) {
+                                level = (rawLevel * 100) / scale
+                            }
+                        }
+                        val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+                        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                                status == BatteryManager.BATTERY_STATUS_FULL
+                        result.success(
+                            mapOf(
+                                "level" to level.coerceIn(0, 100),
+                                "isCharging" to isCharging
+                            )
+                        )
+                    } catch (e: Exception) {
+                        result.success(mapOf("level" to 100, "isCharging" to false))
                     }
                 }
                 else -> result.notImplemented()

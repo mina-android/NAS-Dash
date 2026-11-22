@@ -24,6 +24,10 @@ class ApiEndpoints {
 
   // Apps
   static const String app = '/api/v2.0/app';
+  static const String appStart = '/api/v2.0/app/start';
+  static const String appStop = '/api/v2.0/app/stop';
+  static const String appUpgrade = '/api/v2.0/app/upgrade';
+  static const String appUpgradeSummary = '/api/v2.0/app/upgrade_summary';
   static const String dockerStatus = '/api/v2.0/docker/status';
 
   // Filesystem & ACL

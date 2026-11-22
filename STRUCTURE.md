@@ -11,13 +11,13 @@ NAS Dash is built with Flutter and Dart targeting Android. It follows a clean re
 ```mermaid
 flowchart TD
     subgraph UI ["Presentation Layer (Frosted Glass & Space Grotesk)"]
-        Nav["AppShell (Frosted 4 Bottom Tabs: Dashboard, Storage, Apps, Settings)"]
-        FrostedTop["FrostedAppBar (Frosted Glass Top Bar on all 4 Tabs)"]
+        Nav["AppShell (Portrait: 4 Bottom Tabs | Landscape: Left Frosted NavigationRail)"]
+        FrostedTop["FrostedAppBar (Top Bar + Landscape Lock Toggle & Battery/Route/Clock Telemetry)"]
         Onboard["OnboardingScreen (Setup Wizard & REST Connection Testing)"]
-        Dash["Overview Dashboard (12 Persistent Collapsible/Expandable Widgets)"]
-        StorageUI["Storage & Datasets (Read-Only Pools, VDEVs, Disks, Boot Pool)"]
-        AppsUI["Apps Manager (Start, Stop, Upgrade, Version Diffs, App Icons)"]
-        SettingsUI["Unified SettingsScreen (Servers, SMB ACL, Logs, Users, 8 Advanced Controls)"]
+        Dash["Overview Dashboard (12 Collapsible Widgets • 2-Col Masonry in Landscape)"]
+        StorageUI["Storage & Datasets (Read-Only Pools, VDEVs, Disks, Boot Pool • 2-Col Grid in Landscape)"]
+        AppsUI["Apps Manager (Start, Stop, Upgrade, Version Diffs, App Icons • 2-Col Grid in Landscape)"]
+        SettingsUI["Unified SettingsScreen (Servers, SMB ACL, Logs, Users, Advanced Controls • 2-Col Masonry in Landscape)"]
         Customizer["DashboardCustomizerSheet (SharedPreferences Ordering)"]
     end
 
@@ -27,12 +27,14 @@ flowchart TD
         StorageProv["StorageProvider (Pools, Disks, Datasets, Boot State)"]
         AppsProv["AppsProvider (App Lifecycle & Host Rewriting)"]
         ThemeProv["ThemeSettingsProvider (System/Dark/Light & Dynamic Colors)"]
+        LandProv["LandscapeModeProvider & DeviceTelemetryProvider (Orientation Lock, Battery, Clock)"]
     end
 
     subgraph NativeBridge ["Native Android Platform Layer (Kotlin)"]
         Biometrics["LocalAuthentication (Fingerprint / Face / PIN Guard)"]
         LocalNotif["NotificationService (flutter_local_notifications & Action Dismiss)"]
         WorkMgr["BackgroundAlertWorker (workmanager 15m Periodic Job)"]
+        DeviceChan["DeviceChannel (FLAG_KEEP_SCREEN_ON WakeLock & BatteryManager)"]
     end
 
     subgraph Transport ["Dual Network Transport Layer"]
@@ -63,14 +65,15 @@ flowchart TD
 1. **4 Primary Destinations in `AppShell` with Frosted Chrome**:
    - **Dashboard**: 12 modular widgets with header-tap collapse/expand controls (saved to `SharedPreferences`), numerical load gauges, compact `Row`-based RAM/ARC memory cards (`MemoryArcWidget`), and server alerts.
    - **Storage**: Read-only inspection of ZFS storage pools, VDEV RAID topologies, disk temperatures, hierarchical dataset tree, and OS boot pool wear & status.
-   - **Apps**: Containerized application management with SVG and raster app icon rendering (`AppIconWidget` using `flutter_svg` and CDN fallback), side-by-side version upgrade diffs (`Current ➔ Update`), Start/Stop/Upgrade controls, and smart VPN portal host rewriting.
+   - **Apps**: Containerized application management with SVG and raster app icon rendering (`AppIconWidget` using `flutter_svg` and CDN fallback), side-by-side version upgrade diffs (`Current ➔ Update`, enriched via `/api/v2.0/app/upgrade_summary`), Start/Stop/Upgrade controls with TrueNAS job-ID polling, one-tap **Upgrade All** batch action, and smart VPN portal host rewriting.
    - **Settings**: Unified control center with neutral monochrome icons (`colorScheme.onSurfaceVariant`), combining aligned server profile cards, instant SMB file share toggles with username-resolved Filesystem ACL inspection (`SmbAclBottomSheet`), System Logs & User Accounts (Host power history with formatted dates, Created user accounts), Advanced Controls & Telemetry sheets (Storage thresholds, Active jobs live monitor, Boot SSD health, App resources), and theme/notification controls.
 
 2. **Theming, Typography & High-Performance Frosted Chrome**:
    - `google_fonts` (`Space Grotesk`) provides a crisp, technical aesthetic suited for system administrators.
    - Material You dynamic wallpaper color extraction (`dynamic_color`) adapts palettes automatically on Android 12+.
    - In-app ThemeMode switcher supports **System**, **Dark**, and **Light** modes.
-   - Top and bottom navigation chrome use `FrostedAppBar` and blurred bottom navigation (`BackdropFilter` with `sigma: 18`) with `extendBodyBehindAppBar: true` and hardware-accelerated clipping for 120fps stutter-free scrolling.
+   - Top and bottom/rail navigation chrome use `FrostedAppBar`, blurred bottom `NavigationBar` (in portrait), and blurred left `NavigationRail` (in landscape) (`BackdropFilter` with `sigma: 18–20`) with `extendBodyBehindAppBar: true` and hardware-accelerated clipping for 120fps stutter-free scrolling.
+   - **Landscape Lock Mode ("On-The-Go Server Dashboard")**: Toggled via `FrostedAppBar` (or Settings), locking orientation to landscape, enabling `FLAG_KEEP_SCREEN_ON` wake-lock and `SystemUiMode.immersiveSticky`, displaying live Connection/Battery/Clock pills in the top bar, switching `AppShell` to a left `NavigationRail`, and rendering responsive 2-column masonry/grid layouts (`MasonryTwoColumnGrid` and `UniformTwoColumnGrid`) across all 4 tabs.
 
 3. **Storage & Data Safety**:
    - Dataset and pool deletion or modification is strictly barred from the UI.

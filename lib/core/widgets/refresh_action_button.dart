@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'frosted_app_bar.dart';
 
 class RefreshActionButton extends StatefulWidget {
   final Future<void> Function() onRefresh;
@@ -56,11 +57,12 @@ class _RefreshActionButtonState extends State<RefreshActionButton>
   @override
   Widget build(BuildContext context) {
     return IconButton(
+      style: frostedAppBarActionStyle(context),
       tooltip: widget.tooltip,
       onPressed: _isLoading ? null : _handleRefresh,
       icon: RotationTransition(
         turns: _controller,
-        child: const Icon(Icons.refresh_rounded),
+        child: const Icon(Icons.refresh_rounded, size: 19),
       ),
     );
   }
