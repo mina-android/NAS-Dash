@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.1] - 2026-11-25
 
+### Changed
+- **README & GitHub Releases**: Removed the Frequently Asked Questions section and navigation link from `README.md` to match `README_TEMPLATE.md`, and aligned all GitHub release notes (`v1.0.0`–`v1.1.1`) with the `IT-Box` release note format.
+
 ### Dynamic Server Connection States, Wake-on-LAN & Landscape AOD (2026-11-25)
 - **Wake-on-LAN (WoL) Service & Server Profile (`wake_on_lan_service.dart`, `server_profile.dart`, `auth_provider.dart`, `onboarding_screen.dart`)**:
   - Added `WakeOnLanService` (`RawDatagramSocket` UDP magic packet sender with MAC normalization, 102-byte payload builder, subnet broadcast derivation + `255.255.255.255`, and 3-burst transmission).

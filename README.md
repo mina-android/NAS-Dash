@@ -16,7 +16,7 @@
 
 ## Navigation
 
-[Features](#features) &bull; [Downloads](#downloads) &bull; [Self Building & Local Setup](#self-building--local-setup) &bull; [Frequently Asked Questions](#frequently-asked-questions) &bull; [Contribution](#contribution) &bull; [About the Developer](#about-the-developer) &bull; [Donate](#donate) &bull; [License](#license)
+[Features](#features) &bull; [Downloads](#downloads) &bull; [Self Building & Local Setup](#self-building--local-setup) &bull; [Contribution](#contribution) &bull; [About the Developer](#about-the-developer) &bull; [Donate](#donate) &bull; [License](#license)
 
 ---
 
@@ -102,25 +102,6 @@ Compiled binaries will be generated inside `build/app/outputs/flutter-apk/`.
 # Connect a target device/emulator, then execute
 flutter run --release
 ```
-
----
-
-## Frequently Asked Questions
-
-#### How do I generate an API key on TrueNAS SCALE?
-Log into the TrueNAS SCALE Web UI, open the user menu in the upper-right corner, navigate to **API Keys**, select **Add**, and copy the generated token into the NAS Dash server configuration form.
-
-#### Does NAS Dash work over Tailscale, NetBird, or WireGuard?
-Yes. Enter your local IP under **Primary Host URL (LAN)** and your VPN IP under **Secondary Host / VPN**. NAS Dash probes the LAN host first and falls back to the VPN host automatically when away from your local network.
-
-#### How does Wake-on-LAN know my server's MAC address?
-While the server is online, NAS Dash reads the active physical NIC MAC address (`state.link_address`) from `/api/v2.0/interface` and saves it to the server profile if no MAC is set. You can also enter or override the MAC address, broadcast IP, and UDP port (default `9`) in **Edit Server Configuration**.
-
-#### Can NAS Dash format disks or delete ZFS pools and datasets?
-No. All storage views in NAS Dash are strictly read-only to prevent accidental data loss.
-
-#### Does this application collect telemetry or connect to external servers?
-No telemetry, usage metrics, or error tracking packages are included. Outbound network requests only target your configured TrueNAS SCALE hosts (plus optional app icon asset/CDN lookups).
 
 ---
 
