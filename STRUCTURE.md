@@ -22,19 +22,21 @@ flowchart TD
     end
 
     subgraph State ["Riverpod State & Notifier Layer"]
-        AuthProv["AuthProvider (Active Profile, Encrypted Keystore)"]
+        AuthProv["AuthProvider (Active Profile, Route Probing, WoL MAC, Keystore)"]
+        ConnProv["ServerConnectionProvider (Off/Offline/Restarting/Waking, 30m Refresh, 3m Reboot)"]
         TelemProv["TelemetryProvider (CPU, RAM, ARC, Sparklines, Active Jobs, Alerts)"]
         StorageProv["StorageProvider (Pools, Disks, Datasets, Boot State)"]
         AppsProv["AppsProvider (App Lifecycle & Host Rewriting)"]
         ThemeProv["ThemeSettingsProvider (System/Dark/Light & Dynamic Colors)"]
-        LandProv["LandscapeModeProvider & DeviceTelemetryProvider (Orientation Lock, Battery, Clock)"]
+        LandProv["LandscapeModeProvider, AodModeProvider & DeviceTelemetryProvider"]
     end
 
     subgraph NativeBridge ["Native Android Platform Layer (Kotlin)"]
         Biometrics["LocalAuthentication (Fingerprint / Face / PIN Guard)"]
         LocalNotif["NotificationService (flutter_local_notifications & Action Dismiss)"]
         WorkMgr["BackgroundAlertWorker (workmanager 15m Periodic Job)"]
-        DeviceChan["DeviceChannel (FLAG_KEEP_SCREEN_ON WakeLock & BatteryManager)"]
+        DeviceChan["DeviceChannel (FLAG_KEEP_SCREEN_ON, dimScreenBrightness/setScreenBrightness & BatteryManager)"]
+        WolSvc["WakeOnLanService (RawDatagramSocket UDP Magic Packet)"]
     end
 
     subgraph Transport ["Dual Network Transport Layer"]

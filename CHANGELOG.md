@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-11-25
+
+### Dynamic Server Connection States, Wake-on-LAN & Landscape AOD (2026-11-25)
+- **Wake-on-LAN (WoL) Service & Server Profile (`wake_on_lan_service.dart`, `server_profile.dart`, `auth_provider.dart`, `onboarding_screen.dart`)**:
+  - Added `WakeOnLanService` (`RawDatagramSocket` UDP magic packet sender with MAC normalization, 102-byte payload builder, subnet broadcast derivation + `255.255.255.255`, and 3-burst transmission).
+  - Added `wolMacAddress`, `wolBroadcastAddress`, and `wolPort` (default `9`) to `ServerProfile` with full backward-compatible JSON serialization and an optional **Wake-on-LAN** section in `OnboardingScreen`.
+  - Added automatic physical NIC MAC discovery (`state.link_address` from `/api/v2.0/interface`) in `TelemetryNotifier` persisted via `AuthNotifier.updateWolMacIfEmpty()`.
+- **Dynamic Server Status Machine & Screens (`server_connection_provider.dart`, `server_status_screen.dart`, `app_shell.dart`, `settings_screen.dart`)**:
+  - Added `ServerConnectionNotifier` (`checking`, `online`, `offline`, `shutDown`, `restarting`, `waking`) and gated `AppShell` on `ServerConnectionStatus.online`.
+  - **Shutdown Flow**: Dispatching **Shutdown** from `SettingsScreen` transitions immediately to a full-screen **Server is Off** view (`ServerStatusScreen`) with **Wake on LAN** (auto-polling every 5s for up to 3 minutes) and **Check Connection**.
+  - **Cold Start Offline Flow**: Unreachable servers on cold start show **Server Offline or Disconnected** with **Refresh Connection**, **Wake on LAN**, and a top-right **Server Settings** sheet (edit/switch/add servers).
+  - **3-Minute Post-Restart & 30-Minute Periodic Refresh**: Dispatching **Reboot** transitions to a **Server is Restarting** countdown (`03:00` wall-clock tracked + **Check Now**) that auto-refreshes at `00:00`. A 30-minute periodic health check probes LAN first then VPN, switching to **Offline** if both fail.
+- **Landscape Dashboard Always-On Display (AOD) (`aod_mode_provider.dart`, `landscape_aod_overlay.dart`, `MainActivity.kt`)**:
+  - Added `AodModeNotifier` and `LandscapeAodOverlay` triggering after 30 seconds of inactivity when on the **Dashboard** tab in **Landscape** mode (while online).
+  - Renders a true-black (`#000000`) OLED desk display with Clock & Date, Hostname + `LAN`/`VPN` & Online badge, CPU % & Temp, RAM % & ARC, Pools health/capacity, Network RX/TX, Active Alerts, Uptime, and Phone Battery % + Charging, plus 60-second burn-in pixel shifting and an enable/disable toggle in Settings.
+  - Extended `MainActivity.kt` (`com.ma.nasdash/device`) with `dimScreenBrightness` and `setScreenBrightness` to dim brightness by 10% (`0.90` of current system brightness, `0.02` floor) in AOD and restore system brightness (`-1.0`) immediately on touch or app pause.
+- **Unit Tests (`test/connection_wol_aod_test.dart`)**:
+  - Added unit tests covering `WakeOnLanService`, `ServerProfile` WoL serialization, `ServerConnectionNotifier` state transitions/timers, and `AodModeNotifier` inactivity/wake behavior.
+- **Version Bump (`1.1.1+3`)**:
+  - Bumped `pubspec.yaml`, Settings About badge, and `README.md` release badges/links from `1.1.0+2` to `1.1.1+3`.
+
+---
+
 ## [1.1.0] - 2026-11-22
 
 ### TrueNAS SCALE App Upgrade & Lifecycle Fix (2026-11-22)

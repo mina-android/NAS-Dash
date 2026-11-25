@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.annotation.NonNull
 import com.ma.nasdash.smb.SmbManager
@@ -161,6 +162,41 @@ class MainActivity : FlutterFragmentActivity() {
                         } else {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         }
+                    }
+                    result.success(true)
+                }
+                "setScreenBrightness" -> {
+                    val brightness = call.argument<Double>("brightness")?.toFloat()
+                        ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    runOnUiThread {
+                        val lp = window.attributes
+                        lp.screenBrightness = brightness
+                        window.attributes = lp
+                    }
+                    result.success(true)
+                }
+                "dimScreenBrightness" -> {
+                    val factor = (call.argument<Double>("factor") ?: 0.90).toFloat()
+                    val minBrightness = (call.argument<Double>("minBrightness") ?: 0.02).toFloat()
+                    runOnUiThread {
+                        val lp = window.attributes
+                        val currentNormalized = if (lp.screenBrightness >= 0f) {
+                            lp.screenBrightness
+                        } else {
+                            val sysVal = try {
+                                Settings.System.getInt(
+                                    contentResolver,
+                                    Settings.System.SCREEN_BRIGHTNESS,
+                                    128
+                                )
+                            } catch (_: Exception) {
+                                128
+                            }
+                            sysVal.coerceIn(0, 255) / 255f
+                        }
+                        lp.screenBrightness =
+                            (currentNormalized * factor).coerceIn(minBrightness, 1.0f)
+                        window.attributes = lp
                     }
                     result.success(true)
                 }

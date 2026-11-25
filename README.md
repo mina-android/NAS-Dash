@@ -4,7 +4,7 @@
 
 # NAS Dash
 
-[![Platform](https://img.shields.io/badge/Platform-Android-grey.svg?style=flat)](https://android.com) [![Flutter](https://img.shields.io/badge/Flutter-3.47.6-02569B.svg?style=flat&logo=flutter&logoColor=white)](https://flutter.dev) [![Release](https://img.shields.io/badge/Release-v1.1.0-blue.svg?style=flat)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-grey.svg?style=flat)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-black.svg?style=flat)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Android-grey.svg?style=flat)](https://android.com) [![Flutter](https://img.shields.io/badge/Flutter-3.47.6-02569B.svg?style=flat&logo=flutter&logoColor=white)](https://flutter.dev) [![Release](https://img.shields.io/badge/Release-v1.1.1-blue.svg?style=flat)](https://github.com/mina-android/NAS-Dash/releases) [![Backend](https://img.shields.io/badge/Backend-TrueNAS_SCALE-grey.svg?style=flat)](https://www.truenas.com) [![License](https://img.shields.io/badge/License-GPL--3.0-black.svg?style=flat)](LICENSE)
 
 <p align="center">
   A native Android dashboard and management companion for TrueNAS SCALE servers, providing real-time telemetry, ZFS storage inspection, app lifecycle management, and secure remote connectivity.
@@ -25,7 +25,8 @@
 ### Core Capabilities
 
 - **Real-Time Telemetry & Hardware Monitoring**: Stream live CPU load with per-core distributions, ZFS ARC and physical memory metrics, network throughput, active alerts with server-side dismissal/restoration, background jobs, and OS boot pool wear over encrypted WebSockets and REST APIs.
-- **Landscape Lock Mode (On-The-Go Server Dashboard)**: One-tap topbar button locks the interface into landscape kiosk mode with screen wake-lock (`FLAG_KEEP_SCREEN_ON`), full-screen `immersiveSticky` system bar hiding, a top bar live telemetry cluster (**LAN/VPN Connection**, **Phone Battery %**, and **Time**), a full-height frosted `LandscapeSideNavBar` with live alert/update badges, and responsive 2-column masonry/grid layouts across all 4 tabs.
+- **Landscape Lock & Always-On Display (AOD) Mode**: One-tap topbar button locks the interface into landscape kiosk mode with screen wake-lock (`FLAG_KEEP_SCREEN_ON`), full-screen `immersiveSticky` system bar hiding, a top bar live telemetry cluster (**LAN/VPN Connection**, **Phone Battery %**, and **Time**), a full-height frosted `LandscapeSideNavBar` with live alert/update badges, responsive 2-column masonry/grid layouts across all 4 tabs, and an automatic 30-second inactivity **OLED Always-On Display (AOD)** mode on the Landscape Dashboard with native brightness dimming, burn-in pixel shifting, and tap-to-wake.
+- **Dynamic Power & Wake-on-LAN (WoL) Resilience**: Dedicated full-screen status views for **Server is Off**, **Server is Restarting** (3-minute auto-reconnect countdown), and **Server Offline / Disconnected** on cold start, backed by auto-discovered/editable NIC MAC **Wake-on-LAN** magic packets with 5-second boot polling and 30-minute periodic LAN-first/VPN-fallback connection checks.
 - **Customizable Dashboard Widgets**: Modular widget layout featuring 12 toggleable and collapsible cards with per-widget persistence saved to local application storage.
 - **ZFS Storage & Dataset Inspector**: Read-only explorer for ZFS pools, VDEV mirror and RAIDZ configurations, dataset compression ratios, mount directories, and physical disk S.M.A.R.T. health indicators.
 - **Containerized App Management**: Monitor TrueNAS SCALE catalog applications with search and status filter chips (`All`, `Running`, `Stopped`, `Updates`), inspect active container statuses, review version update differentials (enriched via `upgrade_summary`), trigger container starts/stops, run single or batch **Upgrade All** updates with live TrueNAS job progress, and launch Web UI portals.
@@ -46,10 +47,10 @@ Official release packages are published on the [GitHub Releases](https://github.
 
 | Platform | Architecture | Package Type | Download Link | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Android** | arm64-v8a | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | 64-bit Android devices (recommended) |
-| **Android** | armeabi-v7a | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Older 32-bit hardware |
-| **Android** | x86_64 | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Android x86 emulators |
-| **Android** | Universal | `.apk` | [Download (v1.1.0)](https://github.com/mina-android/NAS-Dash/releases/latest) | Complete universal APK |
+| **Android** | arm64-v8a | `.apk` | [Download (v1.1.1)](https://github.com/mina-android/NAS-Dash/releases/latest) | 64-bit Android devices (recommended) |
+| **Android** | armeabi-v7a | `.apk` | [Download (v1.1.1)](https://github.com/mina-android/NAS-Dash/releases/latest) | Older 32-bit hardware |
+| **Android** | x86_64 | `.apk` | [Download (v1.1.1)](https://github.com/mina-android/NAS-Dash/releases/latest) | Android x86 emulators |
+| **Android** | Universal | `.apk` | [Download (v1.1.1)](https://github.com/mina-android/NAS-Dash/releases/latest) | Complete universal APK |
 
 ---
 

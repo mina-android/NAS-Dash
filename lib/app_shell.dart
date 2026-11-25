@@ -2,14 +2,18 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/aod_mode_provider.dart';
 import 'core/providers/landscape_mode_provider.dart';
+import 'core/providers/server_connection_provider.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_colors.dart';
 import 'features/apps/presentation/apps_screen.dart';
 import 'features/apps/providers/apps_provider.dart';
 import 'features/auth/presentation/onboarding_screen.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/connection/presentation/server_status_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
+import 'features/dashboard/presentation/widgets/landscape_aod_overlay.dart';
 import 'features/dashboard/providers/telemetry_provider.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/storage/presentation/storage_screen.dart';
@@ -23,10 +27,11 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Safely request notification permission after the Android Activity has mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService.instance.requestPermissions();
@@ -34,9 +39,42 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(serverConnectionProvider.notifier).onAppResumed();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      ref.read(aodModeProvider.notifier).onAppPaused();
+    }
+  }
+
+  void _syncAodEligibility({
+    required bool isLandscape,
+    required bool isDashboardTab,
+    required bool isServerOnline,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(aodModeProvider.notifier).updateEligibility(
+            isLandscape: isLandscape,
+            isDashboardTab: isDashboardTab,
+            isServerOnline: isServerOnline,
+          );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final activeServer = ref.watch(activeServerProvider);
     final authState = ref.watch(authStateProvider);
+    final connState = ref.watch(serverConnectionProvider);
+    final aodState = ref.watch(aodModeProvider);
     final isLandscapeLocked = ref.watch(landscapeModeProvider);
     final isLandscape =
         isLandscapeLocked || MediaQuery.of(context).orientation == Orientation.landscape;
@@ -45,6 +83,11 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // If still loading secure storage, show splash loader
     if (authState.isLoading) {
+      _syncAodEligibility(
+        isLandscape: isLandscape,
+        isDashboardTab: false,
+        isServerOnline: false,
+      );
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -54,14 +97,36 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // If no server configured, show onboarding wizard
     if (activeServer == null) {
+      _syncAodEligibility(
+        isLandscape: isLandscape,
+        isDashboardTab: false,
+        isServerOnline: false,
+      );
       return OnboardingScreen(
         onCompleted: () {
+          ref.read(serverConnectionProvider.notifier).checkConnection();
           ref.read(telemetryProvider.notifier).fetchTelemetry();
         },
       );
     }
 
+    // If server is not online (checking, shut down, restarting, waking, or offline),
+    // show the dedicated dynamic ServerStatusScreen.
+    if (connState.status != ServerConnectionStatus.online) {
+      _syncAodEligibility(
+        isLandscape: isLandscape,
+        isDashboardTab: false,
+        isServerOnline: false,
+      );
+      return const ServerStatusScreen();
+    }
+
     final currentIndex = ref.watch(selectedNavigationIndexProvider);
+    _syncAodEligibility(
+      isLandscape: isLandscape,
+      isDashboardTab: currentIndex == 0,
+      isServerOnline: true,
+    );
     final activeAlertCount = ref.watch(
       telemetryProvider.select(
         (asyncTel) =>
@@ -121,20 +186,63 @@ class _AppShellState extends ConsumerState<AppShell> {
       ref.read(selectedNavigationIndexProvider.notifier).state = index;
     }
 
-    if (isLandscape) {
-      return Scaffold(
-        body: Row(
-          children: [
-            ClipRect(
+    final Widget mainShell = isLandscape
+        ? Scaffold(
+            body: Row(
+              children: [
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.78)
+                            : theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
+                        border: Border(
+                          right: BorderSide(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
+                        ),
+                      ),
+                      child: SafeArea(
+                        right: false,
+                        child: LandscapeSideNavBar(
+                          destinations: destinations,
+                          selectedIndex: currentIndex,
+                          onDestinationSelected: selectTab,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _FadeIndexedStack(
+                    index: currentIndex,
+                    children: screens,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Scaffold(
+            extendBody: true,
+            body: _FadeIndexedStack(
+              index: currentIndex,
+              children: screens,
+            ),
+            bottomNavigationBar: ClipRRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.78)
-                        : theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
+                        ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.75)
+                        : theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.85),
                     border: Border(
-                      right: BorderSide(
+                      top: BorderSide(
                         color: isDark
                             ? Colors.white.withValues(alpha: 0.08)
                             : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
@@ -142,76 +250,61 @@ class _AppShellState extends ConsumerState<AppShell> {
                       ),
                     ),
                   ),
-                  child: SafeArea(
-                    right: false,
-                    child: LandscapeSideNavBar(
-                      destinations: destinations,
-                      selectedIndex: currentIndex,
-                      onDestinationSelected: selectTab,
-                    ),
+                  child: NavigationBar(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    selectedIndex: currentIndex,
+                    onDestinationSelected: selectTab,
+                    destinations: destinations
+                        .map(
+                          (d) => NavigationDestination(
+                            icon: _BadgedNavIcon(
+                              icon: d.icon,
+                              badgeCount: d.badgeCount,
+                              badgeColor: d.badgeColor,
+                            ),
+                            selectedIcon: _BadgedNavIcon(
+                              icon: d.selectedIcon,
+                              badgeCount: d.badgeCount,
+                              badgeColor: d.badgeColor,
+                            ),
+                            label: d.label,
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: _FadeIndexedStack(
-                index: currentIndex,
-                children: screens,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+          );
 
-    return Scaffold(
-      extendBody: true,
-      body: _FadeIndexedStack(
-        index: currentIndex,
-        children: screens,
-      ),
-      bottomNavigationBar: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.75)
-                  : theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.85),
-              border: Border(
-                top: BorderSide(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-                  width: 1.0,
-                ),
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) =>
+          ref.read(aodModeProvider.notifier).registerUserActivity(),
+      onPointerMove: (_) =>
+          ref.read(aodModeProvider.notifier).registerUserActivity(),
+      child: Stack(
+        children: [
+          mainShell,
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !aodState.isActive,
+              child: AnimatedOpacity(
+                opacity: aodState.isActive ? 1.0 : 0.0,
+                duration: Duration(milliseconds: aodState.isActive ? 400 : 200),
+                curve: Curves.easeInOut,
+                child: aodState.isActive
+                    ? LandscapeAodOverlay(
+                        onWake: () => ref
+                            .read(aodModeProvider.notifier)
+                            .registerUserActivity(),
+                      )
+                    : const SizedBox.shrink(),
               ),
-            ),
-            child: NavigationBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedIndex: currentIndex,
-              onDestinationSelected: selectTab,
-              destinations: destinations
-                  .map(
-                    (d) => NavigationDestination(
-                      icon: _BadgedNavIcon(
-                        icon: d.icon,
-                        badgeCount: d.badgeCount,
-                        badgeColor: d.badgeColor,
-                      ),
-                      selectedIcon: _BadgedNavIcon(
-                        icon: d.selectedIcon,
-                        badgeCount: d.badgeCount,
-                        badgeColor: d.badgeColor,
-                      ),
-                      label: d.label,
-                    ),
-                  )
-                  .toList(),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

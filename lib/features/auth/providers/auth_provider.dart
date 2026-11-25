@@ -5,6 +5,7 @@ import 'package:dio/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/wake_on_lan_service.dart';
 import '../models/server_profile.dart';
 
 const String _kActiveServerIdKey = 'nas_dash_active_server_id';
@@ -150,5 +151,75 @@ class AuthNotifier extends StateNotifier<AsyncValue<List<ServerProfile>>> {
     }).toList();
     state = AsyncValue.data(updated);
     await _saveProfiles(updated);
+  }
+
+  /// Auto-saves a discovered NIC MAC address only when the profile does not
+  /// already have a user-configured WoL MAC address.
+  Future<void> updateWolMacIfEmpty(String profileId, String macAddress) async {
+    final normalized = WakeOnLanService.normalizeMac(macAddress);
+    if (normalized == null) return;
+    final current = state.valueOrNull ?? [];
+    final idx = current.indexWhere((p) => p.id == profileId);
+    if (idx < 0) return;
+    final target = current[idx];
+    if (target.hasWolMac) return;
+
+    final updated = List<ServerProfile>.from(current)
+      ..[idx] = target.copyWith(wolMacAddress: normalized);
+    state = AsyncValue.data(updated);
+    await _saveProfiles(updated);
+  }
+
+  /// Probes LAN (`primaryHost`) first, then VPN (`secondaryHost`) if configured.
+  /// Returns the reachable [ActiveRoute], or `null` if both are unreachable.
+  Future<ActiveRoute?> probeServerRoutes(
+    ServerProfile profile, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final lanOk = await _pingProfileHost(profile, ActiveRoute.lan, timeout: timeout);
+    if (lanOk) return ActiveRoute.lan;
+
+    if (profile.secondaryHost?.trim().isNotEmpty == true) {
+      final vpnOk = await _pingProfileHost(profile, ActiveRoute.vpn, timeout: timeout);
+      if (vpnOk) return ActiveRoute.vpn;
+    }
+    return null;
+  }
+
+  Future<bool> _pingProfileHost(
+    ServerProfile profile,
+    ActiveRoute route, {
+    required Duration timeout,
+  }) async {
+    try {
+      final scoped = profile.copyWith(activeRoute: route);
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: timeout,
+          receiveTimeout: timeout,
+        ),
+      );
+      dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          final client = HttpClient();
+          if (scoped.allowSelfSigned) {
+            client.badCertificateCallback = (cert, host, port) => true;
+          }
+          return client;
+        },
+      );
+      final headers = <String, String>{};
+      if (scoped.authType == AuthType.apiKey && scoped.apiKey?.isNotEmpty == true) {
+        headers['Authorization'] = 'Bearer ${scoped.apiKey}';
+      } else if (scoped.username != null && scoped.password != null) {
+        final basic = base64Encode(utf8.encode('${scoped.username}:${scoped.password}'));
+        headers['Authorization'] = 'Basic $basic';
+      }
+      final url = '${scoped.normalizedHttpUrl}/api/v2.0/system/info';
+      final res = await dio.get(url, options: Options(headers: headers));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 }

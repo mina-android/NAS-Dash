@@ -24,6 +24,9 @@ class ServerProfile {
   final String? smbDomain;
   final bool allowSelfSigned;
   final ActiveRoute activeRoute;
+  final String? wolMacAddress;
+  final String? wolBroadcastAddress;
+  final int wolPort;
 
   ServerProfile({
     required this.id,
@@ -39,7 +42,12 @@ class ServerProfile {
     this.smbDomain,
     this.allowSelfSigned = true,
     this.activeRoute = ActiveRoute.lan,
+    this.wolMacAddress,
+    this.wolBroadcastAddress,
+    this.wolPort = 9,
   });
+
+  bool get hasWolMac => wolMacAddress != null && wolMacAddress!.trim().isNotEmpty;
 
   String get currentHost => activeRoute == ActiveRoute.lan
       ? primaryHost
@@ -83,6 +91,9 @@ class ServerProfile {
     String? smbDomain,
     bool? allowSelfSigned,
     ActiveRoute? activeRoute,
+    String? wolMacAddress,
+    String? wolBroadcastAddress,
+    int? wolPort,
   }) {
     return ServerProfile(
       id: id ?? this.id,
@@ -98,6 +109,9 @@ class ServerProfile {
       smbDomain: smbDomain ?? this.smbDomain,
       allowSelfSigned: allowSelfSigned ?? this.allowSelfSigned,
       activeRoute: activeRoute ?? this.activeRoute,
+      wolMacAddress: wolMacAddress ?? this.wolMacAddress,
+      wolBroadcastAddress: wolBroadcastAddress ?? this.wolBroadcastAddress,
+      wolPort: wolPort ?? this.wolPort,
     );
   }
 
@@ -116,10 +130,14 @@ class ServerProfile {
       'smbDomain': smbDomain,
       'allowSelfSigned': allowSelfSigned,
       'activeRoute': activeRoute.index,
+      'wolMacAddress': wolMacAddress,
+      'wolBroadcastAddress': wolBroadcastAddress,
+      'wolPort': wolPort,
     };
   }
 
   factory ServerProfile.fromMap(Map<String, dynamic> map) {
+    final parsedPort = (map['wolPort'] as num?)?.toInt();
     return ServerProfile(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
@@ -134,6 +152,11 @@ class ServerProfile {
       smbDomain: map['smbDomain'],
       allowSelfSigned: map['allowSelfSigned'] ?? true,
       activeRoute: ActiveRoute.values[map['activeRoute'] ?? 0],
+      wolMacAddress: map['wolMacAddress'] as String?,
+      wolBroadcastAddress: map['wolBroadcastAddress'] as String?,
+      wolPort: (parsedPort != null && parsedPort >= 1 && parsedPort <= 65535)
+          ? parsedPort
+          : 9,
     );
   }
 

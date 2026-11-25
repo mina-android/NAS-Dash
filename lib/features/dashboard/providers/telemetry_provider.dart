@@ -2,24 +2,32 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/truenas_http_client.dart';
+import '../../../core/providers/server_connection_provider.dart';
 import '../../../core/services/notification_service.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/telemetry_models.dart';
 
 final telemetryProvider =
     StateNotifierProvider<TelemetryNotifier, AsyncValue<TelemetrySnapshot>>((ref) {
   final client = ref.watch(truenasHttpClientProvider);
-  return TelemetryNotifier(client);
+  return TelemetryNotifier(client, ref);
 });
 
 class TelemetryNotifier extends StateNotifier<AsyncValue<TelemetrySnapshot>> {
   final TruenasHttpClient _client;
+  final Ref _ref;
   Timer? _timer;
   final List<double> _cpuHistory = [];
   final List<double> _ramHistory = [];
 
-  TelemetryNotifier(this._client) : super(const AsyncValue.loading()) {
+  TelemetryNotifier(this._client, this._ref) : super(const AsyncValue.loading()) {
     fetchTelemetry();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) => fetchTelemetry(silent: true));
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (_ref.read(serverConnectionProvider).status ==
+          ServerConnectionStatus.online) {
+        fetchTelemetry(silent: true);
+      }
+    });
   }
 
   @override
@@ -176,6 +184,39 @@ class TelemetryNotifier extends StateNotifier<AsyncValue<TelemetrySnapshot>> {
                 txKilobitsPerSec: rates[1],
               ),
             );
+          }
+
+          // Auto-discover physical NIC MAC address for Wake-on-LAN
+          String? discoveredMac;
+          for (final iface in ifaceList) {
+            final name = (iface['id'] as String? ?? iface['name'] as String? ?? '').toLowerCase();
+            if (name == 'lo' ||
+                name.startsWith('docker') ||
+                name.startsWith('br') ||
+                name.startsWith('veth') ||
+                name.startsWith('wg') ||
+                name.startsWith('wt') ||
+                name.startsWith('tailscale')) {
+              continue;
+            }
+            final st = iface['state'] as Map<String, dynamic>?;
+            final linkAddr = st?['link_address'] as String?;
+            final linkState = st?['link_state'] as String? ?? '';
+            if (linkAddr != null && linkAddr.trim().isNotEmpty) {
+              if (linkState.contains('UP')) {
+                discoveredMac = linkAddr;
+                break;
+              }
+              discoveredMac ??= linkAddr;
+            }
+          }
+          if (discoveredMac != null) {
+            final activeServer = _ref.read(activeServerProvider);
+            if (activeServer != null) {
+              _ref
+                  .read(authStateProvider.notifier)
+                  .updateWolMacIfEmpty(activeServer.id, discoveredMac);
+            }
           }
         }
       } catch (_) {}

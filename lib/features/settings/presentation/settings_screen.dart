@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/providers/aod_mode_provider.dart';
 import '../../../core/providers/landscape_mode_provider.dart';
+import '../../../core/providers/server_connection_provider.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -133,6 +135,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 final result = isReboot
                     ? await ref.read(systemProvider.notifier).reboot(reason: reason)
                     : await ref.read(systemProvider.notifier).shutdown(reason: reason);
+                if (result.ok) {
+                  if (isReboot) {
+                    ref.read(serverConnectionProvider.notifier).markRestarting();
+                  } else {
+                    ref.read(serverConnectionProvider.notifier).markShutDown();
+                  }
+                }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -852,6 +861,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   value: isLandscapeLocked,
                   onChanged: (val) => ref.read(landscapeModeProvider.notifier).setLandscapeLock(val),
                 ),
+                const Divider(),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Landscape Always-On Display (AOD)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Switches to a true-black OLED desk display after 30s of inactivity on the Landscape Dashboard', style: TextStyle(fontSize: 11)),
+                  value: ref.watch(aodModeProvider).enabled,
+                  onChanged: (val) => ref.read(aodModeProvider.notifier).setEnabled(val),
+                ),
               ],
             ),
           ),
@@ -1007,7 +1024,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('v1.1.0+2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorScheme.onSurfaceVariant)),
+                    child: Text('v1.1.1+3', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorScheme.onSurfaceVariant)),
                   ),
                 ),
                 const Divider(),

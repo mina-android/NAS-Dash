@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/wake_on_lan_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/server_profile.dart';
 import '../providers/auth_provider.dart';
@@ -27,6 +29,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   late TextEditingController _apiKeyController;
   late TextEditingController _usernameController;
   late TextEditingController _passwordController;
+  late TextEditingController _wolMacController;
+  late TextEditingController _wolBroadcastController;
+  late TextEditingController _wolPortController;
 
   AuthType _authType = AuthType.apiKey;
   bool _allowSelfSigned = true;
@@ -46,6 +51,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _apiKeyController = TextEditingController(text: p?.apiKey ?? '');
     _usernameController = TextEditingController(text: p?.username ?? '');
     _passwordController = TextEditingController(text: p?.password ?? '');
+    _wolMacController = TextEditingController(text: p?.wolMacAddress ?? '');
+    _wolBroadcastController = TextEditingController(text: p?.wolBroadcastAddress ?? '');
+    _wolPortController = TextEditingController(text: (p?.wolPort ?? 9).toString());
     _allowSelfSigned = p?.allowSelfSigned ?? true;
   }
 
@@ -57,10 +65,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _apiKeyController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _wolMacController.dispose();
+    _wolBroadcastController.dispose();
+    _wolPortController.dispose();
     super.dispose();
   }
 
   ServerProfile _buildProfile() {
+    final rawMac = _wolMacController.text.trim();
+    final normalizedMac = rawMac.isNotEmpty ? WakeOnLanService.normalizeMac(rawMac) : null;
+    final rawBroadcast = _wolBroadcastController.text.trim();
+    final parsedPort = int.tryParse(_wolPortController.text.trim());
+
     return ServerProfile(
       id: widget.initialProfile?.id ?? 'server_${DateTime.now().millisecondsSinceEpoch}',
       name: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'TrueNAS SCALE',
@@ -72,6 +88,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       password: _passwordController.text.isNotEmpty ? _passwordController.text : null,
       allowSelfSigned: _allowSelfSigned,
       activeRoute: widget.initialProfile?.activeRoute ?? ActiveRoute.lan,
+      wolMacAddress: normalizedMac ?? (rawMac.isNotEmpty ? rawMac : null),
+      wolBroadcastAddress: rawBroadcast.isNotEmpty ? rawBroadcast : null,
+      wolPort: (parsedPort != null && parsedPort >= 1 && parsedPort <= 65535) ? parsedPort : 9,
     );
   }
 
@@ -263,6 +282,77 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
+
+                // 2.5 Wake-on-LAN (Optional)
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
+                  initiallyExpanded: widget.initialProfile?.hasWolMac == true,
+                  leading: const Icon(Icons.power_settings_new_rounded, size: 20),
+                  title: const Text(
+                    'Wake-on-LAN (Optional)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'Auto-detected from TrueNAS while online, or enter manually',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  children: [
+                    TextFormField(
+                      controller: _wolMacController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Server NIC MAC Address',
+                        hintText: 'AA:BB:CC:DD:EE:FF',
+                        prefixIcon: Icon(Icons.settings_ethernet_rounded),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        if (WakeOnLanService.normalizeMac(v) == null) {
+                          return 'Enter a valid MAC (e.g. AA:BB:CC:DD:EE:FF)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: _wolBroadcastController,
+                            decoration: const InputDecoration(
+                              labelText: 'Broadcast IP (Optional)',
+                              hintText: 'e.g. 192.168.1.255',
+                              prefixIcon: Icon(Icons.wifi_tethering_rounded),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _wolPortController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: const InputDecoration(
+                              labelText: 'UDP Port',
+                              hintText: '9',
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return null;
+                              final port = int.tryParse(v.trim());
+                              if (port == null || port < 1 || port > 65535) {
+                                return '1-65535';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
 
                 // 3. Test Result Alert Banner
                 if (_testResult != null)
